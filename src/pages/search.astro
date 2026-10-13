@@ -1,0 +1,159 @@
+---
+import { getCollection } from 'astro:content';
+import BaseHead from '../components/BaseHead.astro';
+import Footer from '../components/Footer.astro';
+import FormattedDate from '../components/FormattedDate.astro';
+import Header from '../components/Header.astro';
+
+const posts = (await getCollection('blog')).sort(
+	(a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf(),
+);
+
+const index = posts.map((post) => ({
+	id: post.id,
+	title: post.data.title,
+	description: post.data.description,
+	tags: post.data.tags,
+	url: `/blog/${post.id}/`,
+	date: post.data.pubDate.toLocaleDateString('en-us', {
+		year: 'numeric',
+		month: 'short',
+		day: 'numeric',
+	}),
+}));
+
+const title = 'Search';
+const description = '输入关键词，按标题、摘要和标签筛选文章。';
+---
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<BaseHead title={title} description={description} />
+		<style>
+			.intro {
+				color: rgb(var(--gray));
+			}
+			input[type='search'] {
+				width: 100%;
+				margin-top: 1.5rem;
+				padding: 0.75rem 1rem;
+				font-size: 1rem;
+				border: 1px solid rgb(var(--gray-light));
+				border-radius: 10px;
+				background: #fff;
+			}
+			input[type='search']:focus {
+				outline: none;
+				border-color: var(--accent);
+				box-shadow: 0 0 0 3px rgba(var(--gray-light), 80%);
+			}
+			.status {
+				margin: 1rem 0 0 0;
+				font-size: 0.9rem;
+				color: rgb(var(--gray));
+			}
+			ul {
+				list-style: none;
+				margin: 1.5rem 0 0 0;
+				padding: 0;
+			}
+			li {
+				padding: 1.1rem 0;
+				border-bottom: 1px solid rgb(var(--gray-light));
+			}
+			li h2 {
+				font-size: 1.25rem;
+				margin: 0 0 0.3rem 0;
+			}
+			li h2 a {
+				text-decoration: none;
+			}
+			li h2 a:hover {
+				text-decoration: underline;
+			}
+			li p {
+				margin: 0;
+				font-size: 0.9rem;
+				color: rgb(var(--gray));
+			}
+			mark {
+				background: rgba(35, 55, 255, 0.15);
+				color: inherit;
+				border-radius: 3px;
+			}
+		</style>
+	</head>
+	<body>
+		<Header />
+		<main>
+			<h1>{title}</h1>
+			<p class="intro">{description}</p>
+			<input
+				id="search-input"
+				type="search"
+				placeholder="例如：astro、markdown、部署"
+				autocomplete="off"
+				aria-label="搜索文章"
+			/>
+			<p class="status" id="status" aria-live="polite"></p>
+			<ul id="results"></ul>
+		</main>
+		<Footer />
+
+		<script type="application/json" id="search-index" set:html={JSON.stringify(index)} />
+		<script>
+			const indexEl = document.getElementById('search-index');
+			const input = document.getElementById('search-input');
+			const status = document.getElementById('status');
+			const results = document.getElementById('results');
+
+			if (indexEl && input && status && results) {
+				const posts = JSON.parse(indexEl.textContent || '[]');
+
+				const escapeHtml = (value) =>
+					String(value).replace(
+						/[&<>"']/g,
+						(char) =>
+							({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char],
+					);
+
+				const highlight = (value, keyword) => {
+					const safe = escapeHtml(value);
+					if (!keyword) return safe;
+					const escapedKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+					return safe.replace(new RegExp(escapedKeyword, 'gi'), (match) => `<mark>${match}</mark>`);
+				};
+
+				const render = (keyword) => {
+					const needle = keyword.trim().toLowerCase();
+					const matched = needle
+						? posts.filter((post) =>
+								[post.title, post.description, ...post.tags]
+									.join(' ')
+									.toLowerCase()
+									.includes(needle),
+							)
+						: posts;
+
+					status.textContent = needle
+						? `找到 ${matched.length} 篇匹配「${keyword.trim()}」的文章`
+						: `共 ${posts.length} 篇文章`;
+
+					results.innerHTML = matched
+						.map(
+							(post) => `
+						<li>
+							<h2><a href="${post.url}">${highlight(post.title, needle ? keyword.trim() : '')}</a></h2>
+							<p>${post.date} · ${highlight(post.description, needle ? keyword.trim() : '')}</p>
+						</li>`,
+						)
+						.join('');
+				};
+
+				render('');
+				input.addEventListener('input', (event) => render(event.target.value));
+			}
+		</script>
+	</body>
+</html>

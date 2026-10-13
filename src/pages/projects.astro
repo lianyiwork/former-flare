@@ -1,0 +1,122 @@
+---
+import BaseHead from '../components/BaseHead.astro';
+import Footer from '../components/Footer.astro';
+import Header from '../components/Header.astro';
+import { SITE_DESCRIPTION } from '../consts';
+
+const projects = [
+	{
+		name: 'former-flare',
+		description: '一个基于 Astro 的静态博客站点，内置内容集合、RSS、站点地图与图片优化。',
+		stack: ['Astro', 'TypeScript', 'MDX'],
+		href: 'https://github.com/withastro/astro',
+	},
+	{
+		name: 'Markdown 工具箱',
+		description: '一组用于批量整理 Markdown 文档的脚本，支持格式化、链接检查与目录生成。',
+		stack: ['Node.js', 'TypeScript'],
+		href: 'https://docs.astro.build',
+	},
+	{
+		name: '静态站点部署模板',
+		description: '面向静态托管的部署模板，包含缓存策略、重定向规则与 CI 工作流示例。',
+		stack: ['GitHub Actions', 'Netlify'],
+		href: 'https://docs.astro.build/en/guides/deploy/',
+	},
+	{
+		name: '字体子集化实践',
+		description: '记录 Web 字体子集化的完整流程，把中文字体从数 MB 压缩到几十 KB。',
+		stack: ['fonttools', 'CSS'],
+		href: 'https://docs.astro.build/en/guides/fonts/',
+	},
+];
+
+const title = 'Projects';
+const description = '这里收录了一些我参与或维护的项目与实验。';
+---
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<BaseHead title={`${title} | ${SITE_DESCRIPTION}`} description={description} />
+		<style>
+			.intro {
+				color: rgb(var(--gray));
+			}
+			.grid {
+				display: grid;
+				grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+				gap: 1.5rem;
+				margin-top: 2rem;
+			}
+			.card {
+				display: flex;
+				flex-direction: column;
+				padding: 1.5rem;
+				border: 1px solid rgb(var(--gray-light));
+				border-radius: 12px;
+				background: #fff;
+				transition: 0.2s ease;
+			}
+			.card:hover {
+				box-shadow: var(--box-shadow);
+				transform: translateY(-2px);
+			}
+			.card h2 {
+				font-size: 1.25rem;
+				margin: 0 0 0.5rem 0;
+			}
+			.card p {
+				margin: 0 0 1rem 0;
+				color: rgb(var(--gray-dark));
+				font-size: 0.95rem;
+			}
+			.stack {
+				display: flex;
+				flex-wrap: wrap;
+				gap: 0.4rem;
+				list-style: none;
+				margin: 0 0 1rem 0;
+				padding: 0;
+			}
+			.stack li {
+				font-size: 0.75rem;
+				padding: 0.15rem 0.6rem;
+				border-radius: 999px;
+				background: rgb(var(--gray-light));
+				color: rgb(var(--gray-dark));
+			}
+			.card a {
+				margin-top: auto;
+				font-size: 0.9rem;
+				text-decoration: none;
+				font-weight: 700;
+			}
+			.card a:hover {
+				text-decoration: underline;
+			}
+		</style>
+	</head>
+	<body>
+		<Header />
+		<main>
+			<h1>{title}</h1>
+			<p class="intro">{description}</p>
+			<section class="grid">
+				{projects.map((project) => (
+					<article class="card">
+						<h2>{project.name}</h2>
+						<p>{project.description}</p>
+						<ul class="stack">
+							{project.stack.map((item) => <li>{item}</li>)}
+						</ul>
+						<a href={project.href} target="_blank" rel="noopener noreferrer">
+							查看详情 →
+						</a>
+					</article>
+				))}
+			</section>
+		</main>
+		<Footer />
+	</body>
+</html>

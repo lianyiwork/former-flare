@@ -1,0 +1,90 @@
+---
+import { getCollection } from 'astro:content';
+import BaseHead from '../../components/BaseHead.astro';
+import Footer from '../../components/Footer.astro';
+import Header from '../../components/Header.astro';
+
+const posts = await getCollection('blog');
+
+const countByTag = new Map<string, number>();
+for (const post of posts) {
+	for (const tag of post.data.tags) {
+		countByTag.set(tag, (countByTag.get(tag) ?? 0) + 1);
+	}
+}
+
+const tags = [...countByTag.entries()]
+	.map(([name, count]) => ({ name, count }))
+	.sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
+
+const title = 'Tags';
+const description = `共 ${tags.length} 个标签，覆盖 ${posts.length} 篇文章。`;
+---
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<BaseHead title={title} description={description} />
+		<style>
+			.intro {
+				color: rgb(var(--gray));
+			}
+			.cloud {
+				display: flex;
+				flex-wrap: wrap;
+				gap: 0.75rem;
+				list-style: none;
+				margin: 2rem 0 0 0;
+				padding: 0;
+			}
+			.cloud a {
+				display: inline-flex;
+				align-items: center;
+				gap: 0.5rem;
+				padding: 0.4rem 0.9rem;
+				border: 1px solid rgb(var(--gray-light));
+				border-radius: 999px;
+				text-decoration: none;
+				transition: 0.2s ease;
+			}
+			.cloud a:hover {
+				box-shadow: var(--box-shadow);
+				border-color: var(--accent);
+			}
+			.count {
+				font-size: 0.75rem;
+				padding: 0.05rem 0.5rem;
+				border-radius: 999px;
+				background: rgb(var(--gray-light));
+				color: rgb(var(--gray-dark));
+			}
+			.empty {
+				color: rgb(var(--gray));
+			}
+		</style>
+	</head>
+	<body>
+		<Header />
+		<main>
+			<h1>{title}</h1>
+			<p class="intro">{description}</p>
+			{
+				tags.length === 0 ? (
+					<p class="empty">还没有任何标签，给文章加上 tags 字段后就会出现在这里。</p>
+				) : (
+					<ul class="cloud">
+						{tags.map((tag) => (
+							<li>
+								<a href={`/tags/${encodeURIComponent(tag.name)}/`}>
+									{tag.name}
+									<span class="count">{tag.count}</span>
+								</a>
+							</li>
+						))}
+					</ul>
+				)
+			}
+		</main>
+		<Footer />
+	</body>
+</html>
