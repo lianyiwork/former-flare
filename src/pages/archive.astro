@@ -56,6 +56,12 @@ const description = `全部 ${posts.length} 篇文章，按年份归档。`;
 				gap: 1rem;
 				padding: 0.6rem 0;
 			}
+			/* 光晕层需要元素有圆角与内边距才能贴合 */
+			.row {
+				padding: 0.6rem 1rem;
+				margin: 0 -1rem;
+				border-radius: 12px;
+			}
 			li time {
 				width: 7rem;
 				flex-shrink: 0;
@@ -86,7 +92,7 @@ const description = `全部 ${posts.length} 篇文章，按年份归档。`;
 					<h2>{year}</h2>
 					<ul>
 						{byYear[year].map((post) => (
-							<li>
+							<li data-spot data-spot-flat class="row">
 								<FormattedDate date={post.data.pubDate} />
 								<a href={`/blog/${post.id}/`}>{post.data.title}</a>
 							</li>

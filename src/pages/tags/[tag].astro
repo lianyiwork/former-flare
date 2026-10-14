@@ -46,6 +46,11 @@ const description = `标签「${tag}」下的 ${posts.length} 篇文章。`;
 				padding: 1.25rem 0;
 				border-bottom: 1px solid rgb(var(--gray-light));
 			}
+			.row {
+				padding: 1.25rem 1rem;
+				margin: 0 -1rem;
+				border-radius: 12px;
+			}
 			li h2 {
 				font-size: 1.35rem;
 				margin: 0 0 0.35rem 0;
@@ -79,7 +84,7 @@ const description = `标签「${tag}」下的 ${posts.length} 篇文章。`;
 			<p class="intro">{description}</p>
 			<ul>
 				{posts.map((post) => (
-					<li>
+					<li data-spot data-spot-flat class="row">
 						<h2>
 							<a href={`/blog/${post.id}/`}>{post.data.title}</a>
 						</h2>

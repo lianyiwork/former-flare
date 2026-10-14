@@ -1,0 +1,138 @@
+---
+/**
+ * SpotLight — 全站统一的鼠标跟随光晕 / 3D 倾斜特效。
+ *
+ * 工作原理：
+ * 1. 扫描页面中符合 SPOT_SELECTOR 的元素（卡片、链接块等）。
+ * 2. 为每个元素注入一层光晕（::before 由 CSS 提供，脚本只负责更新坐标）。
+ * 3. 指针在元素内移动时，写入 --spot-x / --spot-y 与倾斜角度，
+ *    由 CSS 完成实际渲染，避免脚本直接操作样式带来的布局抖动。
+ *
+ * 无障碍与性能：
+ * - 尊重 prefers-reduced-motion，用户要求减少动效时整体禁用。
+ * - 通过 IntersectionObserver 只处理视口内的元素。
+ * - 使用 rAF 节流，避免高频 pointermove 触发过多重排。
+ * - 触屏设备（无 hover 能力）自动跳过，不产生额外开销。
+ */
+---
+
+<script>
+	const SPOT_SELECTOR = '[data-spot], .card, .cloud a';
+	const TILT_MAX = 8; // 最大倾斜角度（度）
+	const GLOW_OPACITY = 0.85;
+
+	type Enhanced = HTMLElement & { __spotBound?: boolean };
+
+	const prefersReducedMotion = window.matchMedia(
+		'(prefers-reduced-motion: reduce)',
+	).matches;
+	const canHover = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+
+	if (!prefersReducedMotion && canHover) {
+		/* ---------------------------------------------------------------
+		 * 单元素绑定：写入坐标变量 + 倾斜变换
+		 * ------------------------------------------------------------- */
+		const bind = (el: Enhanced) => {
+			if (el.__spotBound) return;
+			el.__spotBound = true;
+
+			el.classList.add('spot-enabled');
+			// 文本型列表项只保留光晕，不做 3D 倾斜，避免阅读时产生眩晕
+			if (el.hasAttribute('data-spot-flat')) el.classList.add('spot-flat');
+
+			let rafId = 0;
+			let pendingX = 0;
+			let pendingY = 0;
+			let rect: DOMRect | null = null;
+
+			const render = () => {
+				rafId = 0;
+				if (!rect) return;
+
+				// 指针在元素内的归一化坐标（0~1）
+				const px = (pendingX - rect.left) / rect.width;
+				const py = (pendingY - rect.top) / rect.height;
+
+				el.style.setProperty('--spot-x', `${(px * 100).toFixed(2)}%`);
+				el.style.setProperty('--spot-y', `${(py * 100).toFixed(2)}%`);
+				el.style.setProperty('--spot-opacity', String(GLOW_OPACITY));
+
+				// 以中心为原点计算倾斜：靠近边缘时角度最大
+				const tiltY = (px - 0.5) * 2 * TILT_MAX;
+				const tiltX = (0.5 - py) * 2 * TILT_MAX;
+				el.style.setProperty('--tilt-x', `${tiltX.toFixed(2)}deg`);
+				el.style.setProperty('--tilt-y', `${tiltY.toFixed(2)}deg`);
+			};
+
+			const onMove = (event: PointerEvent) => {
+				pendingX = event.clientX;
+				pendingY = event.clientY;
+				if (!rafId) rafId = requestAnimationFrame(render);
+			};
+
+			const onEnter = (event: PointerEvent) => {
+				// 进入时重新测量，避免滚动或布局变化导致坐标偏移
+				rect = el.getBoundingClientRect();
+				onMove(event);
+			};
+
+			const onLeave = () => {
+				if (rafId) {
+					cancelAnimationFrame(rafId);
+					rafId = 0;
+				}
+				rect = null;
+				el.style.setProperty('--spot-opacity', '0');
+				el.style.setProperty('--tilt-x', '0deg');
+				el.style.setProperty('--tilt-y', '0deg');
+			};
+
+			// 滚动时矩形失效，重置以便下次进入时重新测量
+			const onScroll = () => {
+				rect = null;
+			};
+
+			el.addEventListener('pointerenter', onEnter);
+			el.addEventListener('pointermove', onMove, { passive: true });
+			el.addEventListener('pointerleave', onLeave);
+			el.addEventListener('pointercancel', onLeave);
+			window.addEventListener('scroll', onScroll, { passive: true });
+		};
+
+		/* ---------------------------------------------------------------
+		 * 批量处理：只对进入视口的元素执行绑定
+		 * ------------------------------------------------------------- */
+		const collect = (root: ParentNode = document) =>
+			Array.from(root.querySelectorAll<Enhanced>(SPOT_SELECTOR));
+
+		const observer = new IntersectionObserver(
+			(entries) => {
+				for (const entry of entries) {
+					if (entry.isIntersecting) {
+						bind(entry.target as Enhanced);
+						observer.unobserve(entry.target);
+					}
+				}
+			},
+			{ rootMargin: '100px' },
+		);
+
+		const register = (root: ParentNode = document) => {
+			for (const el of collect(root)) observer.observe(el);
+		};
+
+		const init = () => register();
+
+		if (document.readyState === 'loading') {
+			document.addEventListener('DOMContentLoaded', init, { once: true });
+		} else {
+			init();
+		}
+
+		// Astro 客户端导航（View Transitions）后重新绑定新内容
+		document.addEventListener('astro:page-load', init);
+
+		// 页面脚本动态插入节点后（如搜索结果）主动通知重新扫描
+		document.addEventListener('spot:refresh', init);
+	}
+</script>

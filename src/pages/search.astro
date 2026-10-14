@@ -62,6 +62,12 @@ const description = '输入关键词，按标题、摘要和标签筛选文章�
 				padding: 1.1rem 0;
 				border-bottom: 1px solid rgb(var(--gray-light));
 			}
+			/* 光晕层需要圆角与内边距才能贴合元素轮廓 */
+			.row {
+				padding: 1.1rem 1rem;
+				margin: 0 -1rem;
+				border-radius: 12px;
+			}
 			li h2 {
 				font-size: 1.25rem;
 				margin: 0 0 0.3rem 0;
@@ -143,12 +149,15 @@ const description = '输入关键词，按标题、摘要和标签筛选文章�
 					results.innerHTML = matched
 						.map(
 							(post) => `
-						<li>
+						<li data-spot data-spot-flat class="row">
 							<h2><a href="${post.url}">${highlight(post.title, needle ? keyword.trim() : '')}</a></h2>
 							<p>${post.date} · ${highlight(post.description, needle ? keyword.trim() : '')}</p>
 						</li>`,
 						)
 						.join('');
+
+					// 结果由脚本动态写入，通知光晕特效重新扫描新节点
+					document.dispatchEvent(new CustomEvent('spot:refresh'));
 				};
 
 				render('');

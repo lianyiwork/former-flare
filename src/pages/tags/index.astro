@@ -75,7 +75,7 @@ const description = `共 ${tags.length} 个标签，覆盖 ${posts.length} 篇�
 					<ul class="cloud">
 						{tags.map((tag) => (
 							<li>
-								<a href={`/tags/${encodeURIComponent(tag.name)}/`}>
+								<a href={`/tags/${encodeURIComponent(tag.name)}/`} data-spot>
 									{tag.name}
 									<span class="count">{tag.count}</span>
 								</a>
